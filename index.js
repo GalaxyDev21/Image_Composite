@@ -8,36 +8,20 @@ const server = http.createServer((req, res) => {
 	const width = 1200;
 	const height = 600;
 	createImage(height, width, [{
-		url: 'https://c.saavncdn.com/174/Complicated-English-2017-500x500.jpg',
-		width: 100,
-		height: 100,
-		top: 200,
-		left: 50
-	},{
-		url: 'https://c.saavncdn.com/174/Complicated-English-2017-500x500.jpg',
-		width: 100,
-		height: 100,
-		top: 250,
-		left: 50
-	},{
-		url: 'https://c.saavncdn.com/174/Complicated-English-2017-500x500.jpg',
-		width: 100,
-		height: 100,
-		top: 600,
-		left: 50
-	},{
-		url: 'https://c.saavncdn.com/174/Complicated-English-2017-500x500.jpg',
-		width: 100,
-		height: 100,
-		top: 800,
-		left: 50
-	},{
-		url: 'https://c.saavncdn.com/174/Complicated-English-2017-500x500.jpg',
-		width: 100,
-		height: 100,
-		top: 900,
-		left: 50
-	}]).then(image => {
+		url: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Clouds_over_the_Atlantic_Ocean.jpg',
+		width: 800,
+		height: 1000,
+		top: 0,
+		left: 0
+	},
+		{
+			url: 'https://snoidcdnems02.cdnsrv.jio.com/c.saavncdn.com/174/Complicated-English-2017-500x500.jpg',
+			width: 200,
+			height: 250,
+			top: 300,
+			left: 400,
+			circle: true
+		},]).then(image => {
 		res.statusCode = 200;
 		res.setHeader('Content-Type', 'text/html');
 		res.end('<img src="' + image + '" />');
@@ -57,18 +41,27 @@ const server = http.createServer((req, res) => {
  * circle: true,
  * }
  */
-const createImage = function (height, width, layers) {
+const createImage = async function (height, width, layers) {
 	const canvas = createCanvas(width, height);
 	const context = canvas.getContext('2d');
 	context.fillStyle = '#eee';
 	context.fillRect(0, 0, width, height);
-	const promises = layers.map(l => loadImage(l.url).then(image => context.drawImage(image, l.top, l.left, l.width, l.height)));
-	return Promise.all(promises)
-		.then(() => {
-			const buffer = canvas.toBuffer('image/png');
-			fs.writeFileSync(`images/${new Date().getTime()}.png`, buffer);
-			return canvas.toDataURL();
+	for (let l of layers) {
+		await loadImage(l.url).then(image => {
+			if (l.circle) {
+				context.save();
+				context.beginPath();
+				context.arc(l.left + (l.width / 2), l.top + (l.height / 2), l.width / 2, 0, 2 * Math.PI, false);
+				context.clip();
+				context.drawImage(image, l.left, l.top, l.width, l.height);
+				context.restore();
+			} else
+				context.drawImage(image, l.left, l.top, l.width, l.height);
 		});
+	}
+	const buffer = canvas.toBuffer('image/png');
+	fs.writeFileSync(`images/${new Date().getTime()}.png`, buffer);
+	return canvas.toDataURL();
 };
 
 server.listen(port, hostname, () => {
